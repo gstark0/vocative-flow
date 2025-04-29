@@ -3,7 +3,7 @@ from django.contrib import admin
 from django.contrib.auth import get_user_model
 
 # Import your models here, like User and any other models
-from .models import User, Project, Node, Edge, AINode, Example, CodeNode
+from .models import User, Project, Node, Edge, AINode, Example, CodeNode, SupportedTranscriptLanguage, ProjectSupportedTranscriptLanguage, TemplateNode
 
 class CustomAdminSite(admin.AdminSite):
     """
@@ -25,4 +25,7 @@ custom_admin_site.register(Node)
 custom_admin_site.register(Edge)
 custom_admin_site.register(AINode)
 custom_admin_site.register(CodeNode)
+custom_admin_site.register(TemplateNode)
 custom_admin_site.register(Example)
+custom_admin_site.register(SupportedTranscriptLanguage)
+custom_admin_site.register(ProjectSupportedTranscriptLanguage)

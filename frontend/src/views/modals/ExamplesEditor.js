@@ -23,7 +23,7 @@ export default function ExamplesEditor({
   open,
   onClose,
   selectedNode,
-  onUpdateExamples
+  onUpdateExamples,
 }) {
   const [examples, setExamples] = useState([]);
   const [selectedExample, setSelectedExample] = useState(null);

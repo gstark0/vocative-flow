@@ -41,7 +41,7 @@ export const projectService = {
   // Update an existing project
   updateProject: async (projectId, projectData) => {
     try {
-      const response = await api.put(
+      const response = await api.patch(
         `/projects/${projectId}/`,
         projectData
       );
@@ -61,7 +61,18 @@ export const projectService = {
       console.error(`Error deleting project ${projectId}:`, error);
       throw error;
     }
-  }
+  },
+
+  // Get general available settings
+  getGeneralSettings: async () => {
+    try {
+      const response = await api.get('/settings/');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching general settings:', error);
+      throw error;
+    }
+  },
 };
 
 export default projectService;

@@ -6,7 +6,7 @@ from api.permissions import IsCreator, IsClient, IsCreatorOrClient
 from django.shortcuts import get_object_or_404
 from django.db import transaction
 
-from api.models import Project, Node, Edge, AINode, CodeNode, Example
+from api.models import Project, Node, Edge, AINode, CodeNode, Example, TemplateNode
 from api.serializers import ProjectFlowSerializer, NodeSerializer, EdgeSerializer
 
 class FlowViewSet(viewsets.ViewSet):
@@ -85,6 +85,12 @@ class FlowViewSet(viewsets.ViewSet):
                     CodeNode.objects.create(
                         node=node,
                         code=data.get('code', '')
+                    )
+                
+                elif node.type == 'template_node':
+                    TemplateNode.objects.create(
+                        node=node,
+                        template=data.get('template', '')
                     )
 
             # Create new edges using foreign keys

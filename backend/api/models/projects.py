@@ -56,3 +56,39 @@ class Project(models.Model):
 
     def __str__(self):
         return self.name
+    
+    def get_supported_languages(self):
+        """
+        Get the list of supported languages for this project
+        """
+        return [lang.language for lang in self.projectsupportedtranscriptlanguage_set.all()]
+    
+class SupportedTranscriptLanguage(models.Model):
+    """
+    Represents supported languages for a project.
+    """
+    name = models.CharField(max_length=50)
+    code = models.CharField(max_length=2)
+    
+    def __str__(self):
+        return f"{self.name} ({self.code})"
+
+    class Meta:
+        verbose_name = "Supported transcript language"
+        verbose_name_plural = "Supported transcript languages"
+
+class ProjectSupportedTranscriptLanguage(models.Model):
+    """
+    Represents the many-to-many relationship between projects and supported languages.
+    """
+    project = models.ForeignKey(Project, on_delete=models.CASCADE)
+    language = models.ForeignKey(SupportedTranscriptLanguage, on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ('project', 'language')
+        verbose_name = "Project supported transcript language"
+        verbose_name_plural = "Project supported transcript languages"
+        ordering = ['project', 'language']  
+
+    def __str__(self):
+        return f"{self.project.name} - {self.language.name} ({self.language.code})"

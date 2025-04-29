@@ -5,7 +5,7 @@ from rest_framework.routers import DefaultRouter
 
 from .views.auth import CreatorTokenObtainPairView, ClientTokenObtainPairView, SystemClientTokenView
 from .views.flow import FlowViewSet
-from .views.projects import ProjectViewSet
+from .views.projects import ProjectViewSet, GeneralSettingsView
 from .views.client import ClientSystemView  # This will be a new view
 
 # Create a router for project endpoints
@@ -24,9 +24,11 @@ urlpatterns = [
     path('client/<str:system_url_name>/token/', SystemClientTokenView.as_view(), name='system_client_token'),
     path('client/<str:system_url_name>/token/refresh/', TokenRefreshView.as_view(), name='system_token_refresh'),
     path('client/<str:system_url_name>/data/', ClientSystemView.as_view(), name='client_system_data'),
+    path('client/<str:system_url_name>/login-data/',  ClientSystemView.as_view(), name='client_system_login_data'),
 
     # Include project routes from router
     path('', include(router.urls)),
+    path('settings/', GeneralSettingsView.as_view(), name='general-settings'),
 
     # Flow endpoints
     path('projects/<int:project_id>/flow/', FlowViewSet.as_view({

@@ -10,6 +10,7 @@ class Node(models.Model):
         ('output_node', 'Output'),
         ('ai_node', 'AI'),
         ('code_node', 'Code'),
+        ('template_node', 'Template'),
     ]
     
     node_internal_id = models.CharField(max_length=100)
@@ -53,6 +54,17 @@ class AINode(models.Model):
 
     def __str__(self):
         return f"AI Node: {self.node.label}"
+    
+class TemplateNode(models.Model):
+    """
+    Additional data for Template nodes.
+    """
+    node = models.OneToOneField(Node, on_delete=models.CASCADE, related_name='template_data')
+    template = models.TextField()
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Template Node: {self.node.label}"
 
 class Example(models.Model):
     """

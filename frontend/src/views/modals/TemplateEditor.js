@@ -20,44 +20,44 @@ import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DescriptionOutlinedIcon from '@mui/icons-material/DescriptionOutlined';
 import CodeIcon from '@mui/icons-material/Code';
 
-export default function PromptEditor({
+export default function TemplateEditor({
   open,
   onClose,
   selectedNode,
   onSave,
   availableVariables
 }) {
-  const [prompt, setPrompt] = useState('');
+  const [template, setTemplate] = useState('');
   const [charCount, setCharCount] = useState(0);
   const [copySuccess, setCopySuccess] = useState(false);
   const textareaRef = useRef(null);
   
   useEffect(() => {
-    // Initialize prompt from node data if it exists
-    if (selectedNode?.data?.prompt) {
-      setPrompt(selectedNode.data.prompt);
-      setCharCount(selectedNode.data.prompt.length);
+    // Initialize template from node data if it exists
+    if (selectedNode?.data?.template) {
+      setTemplate(selectedNode.data.template);
+      setCharCount(selectedNode.data.template.length);
     } else {
-      setPrompt('');
+      setTemplate('');
       setCharCount(0);
     }
   }, [selectedNode]);
   
-  // Update character count when prompt changes
-  const handlePromptChange = (e) => {
-    const newPrompt = e.target.value;
-    setPrompt(newPrompt);
-    setCharCount(newPrompt.length);
+  // Update character count when template changes
+  const handleTemplateChange = (e) => {
+    const newTemplate = e.target.value;
+    setTemplate(newTemplate);
+    setCharCount(newTemplate.length);
   };
   
   const handleSave = () => {
-    onSave?.(prompt);
+    onSave?.(template);
     onClose();
   };
   
-  // Copy prompt to clipboard
+  // Copy template to clipboard
   const handleCopy = () => {
-    navigator.clipboard.writeText(prompt);
+    navigator.clipboard.writeText(template);
     setCopySuccess(true);
     setTimeout(() => {
       setCopySuccess(false);
@@ -76,10 +76,10 @@ export default function PromptEditor({
     const end = textarea.selectionEnd;
     
     // Use functional form of setState to ensure we're working with latest state
-    setPrompt(prevPrompt => 
-      prevPrompt.substring(0, start) + 
+    setTemplate(prevTemplate => 
+      prevTemplate.substring(0, start) + 
       variableText + 
-      prevPrompt.substring(end)
+      prevTemplate.substring(end)
     );
     
     // Set focus and update cursor position in next tick
@@ -114,7 +114,7 @@ export default function PromptEditor({
           pl: 3,
           bgcolor: 'background.surface'
         }}>
-          <DialogTitle sx={{ m: 0, p: 0, fontWeight: 600 }}>Prompt Editor</DialogTitle>
+          <DialogTitle sx={{ m: 0, p: 0, fontWeight: 600 }}>Template Editor</DialogTitle>
           <IconButton size="sm" variant="plain" color="neutral" onClick={onClose}>
             <CloseIcon />
           </IconButton>
@@ -144,10 +144,10 @@ export default function PromptEditor({
                 color="neutral"
                 startDecorator={<DescriptionOutlinedIcon fontSize="small" />}
               >
-                {selectedNode?.data?.label || 'Prompt Node'}
+                {selectedNode?.data?.label || 'Template Node'}
               </Chip>
               <Typography level="body-sm" sx={{ color: 'text.secondary', display: { xs: 'none', sm: 'block' } }}>
-                  Define instructions for this node
+                Output formatting template
               </Typography>
             </Box>
             
@@ -228,9 +228,9 @@ export default function PromptEditor({
             }}
           >
             <Textarea
-              value={prompt}
-              onChange={handlePromptChange}
-              placeholder="Write your detailed prompt here..."
+              value={template}
+              onChange={handleTemplateChange}
+              placeholder="# Title of your report&#13;&#13;## Introduction&#13;&#13;This report analyzes {{input}} and produces {{result}} ..."
               minRows={14}
               maxRows={14}
               sx={{
@@ -254,7 +254,7 @@ export default function PromptEditor({
               slotProps={{
                 textarea: {
                   ref: textareaRef,
-                  id: 'prompt-textarea'
+                  id: 'template-textarea'
                 }
               }}
             />

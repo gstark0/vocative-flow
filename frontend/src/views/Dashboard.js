@@ -46,11 +46,13 @@ import LeftSidebar from '../components/LeftSidebar';
 import PromptEditor from './modals/PromptEditor';
 import ExamplesEditor from './modals/ExamplesEditor';
 import CodeEditor from './modals/CodeEditor';
+import TemplateEditor from './modals/TemplateEditor';
 
 import AINode from '../components/nodes/AINode';
 import CodeNode from '../components/nodes/CodeNode';
 import InputNode from '../components/nodes/InputNode';
 import OutputNode from '../components/nodes/OutputNode';
+import TemplateNode from '../components/nodes/TemplateNode';
 
 import { useAutosave } from '../hooks/useAutosave';
 import { SaveIndicator } from '../components/SaveIndicator'; 
@@ -63,6 +65,7 @@ const nodeTypes = {
     code_node: CodeNode,
     input_node: InputNode,
     output_node: OutputNode,
+    template_node: TemplateNode,
 }
 
 const initialNodes = [];
@@ -77,20 +80,28 @@ export default function Dashboard() {
     const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
     const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
     const [project, setProject] = useState(null);
+    const [generalSettings, setGeneralSettings] = useState(null);
 
+    const [nodeLabelsMap, setNodeLabelsMap] = useState({}); // Map to track node labels
     const [selectedNode, setSelectedNode] = useState(null); // Track the selected node
+    const [selectedNodeInputs, setSelectedNodeInputs] = useState([]); // Track the selected node's inputs
+    const [selectedNodeOutputs, setSelectedNodeOutputs] = useState([]); // Track the selected node's outputs
     const [sidebarVisible, setSidebarVisible] = useState(false); // Track sidebar visibility
 
     const [isPromptModalOpen, setPromptModalOpen] = useState(false);
     const [isExamplesModalOpen, setExamplesModalOpen] = useState(false);
     const [isCodeEditorOpen, setCodeEditorOpen] = useState(false);
+    const [isTemplateEditorOpen, setTemplateEditorOpen] = useState(false);
 
     // API
     const [loading, setLoading] = useState(true);
+    const [projectLoading, setProjectLoading] = useState(true);
     const [error, setError] = useState(null);
 
     // Open and close modals
     const openPromptEditor = () => setPromptModalOpen(true);
+    const openTemplateEditor = () => setTemplateEditorOpen(true);
+    const closeTemplateEditor = () => setTemplateEditorOpen(false);
     const closePromptEditor = () => setPromptModalOpen(false);
     const openExamplesModal = () => setExamplesModalOpen(true);
     const closeExamplesModal = () => setExamplesModalOpen(false);
@@ -107,13 +118,18 @@ export default function Dashboard() {
     // Load project info
     useEffect(() => {
         const loadProjectInfo = async () => {
+            setProjectLoading(true);
             if (!projectId) return;
             
             try {
                 const projectData = await projectService.getProject(projectId);
+                const generalSettings = await projectService.getGeneralSettings();
                 setProject(projectData);
+                setGeneralSettings(generalSettings);
+                setProjectLoading(false);
             } catch (err) {
                 console.error('Failed to load project info:', err);
+                setProjectLoading(false);
                 // Non-critical error, so we don't set the error state
             }
         };
@@ -132,7 +148,14 @@ export default function Dashboard() {
                 const flowData = await flowService.getFlow(projectId || "1");
                 
                 if (flowData.nodes) {
-                    setNodes(flowData.nodes);
+                    // Make input and output nodes non-deletable
+                    const updatedNodes = flowData.nodes.map(node => {
+                        if (node.type === 'input_node' || node.type === 'output_node') {
+                            return { ...node, deletable: false };
+                        }
+                        return node;
+                    });
+                    setNodes(updatedNodes);
                 }
                 
                 if (flowData.edges) {
@@ -151,6 +174,11 @@ export default function Dashboard() {
         loadFlow();
     }, [projectId, setNodes, setEdges]);
 
+    // Whenever node or edge is updated, update the nodes map
+    useEffect(() => {
+        updateNodesMap();
+    }, [nodes, edges]);
+
     // Function to handle back navigation to projects page
     const handleBackToProjects = () => {
         if (saveStatus === 'saving') {
@@ -162,6 +190,25 @@ export default function Dashboard() {
             navigate('/projects');
         }
     };
+
+    const updateNodesMap = () => {
+        // Create a map of node IDs to labels for easy access
+        const labelsMap = {};
+        nodes.forEach(node => {
+            labelsMap[node.id] = {
+                label: node.data.label,
+                inputs: [],
+                outputs: []
+            };
+        });
+        console.log(labelsMap)
+
+        for (const edge of edges) {
+            labelsMap[edge.source].outputs.push(labelsMap[edge.target].label);
+            labelsMap[edge.target].inputs.push(labelsMap[edge.source].label);
+        }
+        setNodeLabelsMap(labelsMap);
+    }
 
     // Function to handle node click and show sidebar
     const onNodeClick = (event, node) => {
@@ -299,7 +346,23 @@ export default function Dashboard() {
                 overflow: 'hidden',
             }}>
                 {/* Sidebar */}
-                <LeftSidebar onAddNode={addNode} onRemoveNode={removeNode} />
+                { !projectLoading ?
+                    <LeftSidebar
+                        onAddNode={addNode}
+                        onRemoveNode={removeNode}
+                        supportedTranscriptLanguages={generalSettings?.transcript_languages}
+                        selectedTranscriptLanguages={project?.supported_languages}
+                        clientSystemUrl={project?.url_name}
+                        onLanguagesChange={languageIds => {
+                            projectService.updateProject(projectId, {
+                                'language_ids': languageIds
+                            })
+                        }}
+                    /> : 
+                    <Box sx={{ width: 280, height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                        <CircularProgress />
+                    </Box>
+                }
 
                 {/* Main Content */}
                 <Box sx={{
@@ -353,7 +416,10 @@ export default function Dashboard() {
                     selectedNode={selectedNode}
                     onClose={closeSidebar}
                     onNodeNameChange={handleNodeNameChange}
+                    selectedNodeInputs={nodeLabelsMap[selectedNode?.id]?.inputs || []}
+                    selectedNodeOutputs={nodeLabelsMap[selectedNode?.id]?.outputs || []}
                     openPromptModal={openPromptEditor}
+                    openTemplateEditor={openTemplateEditor}
                     openExamplesModal={openExamplesModal}
                     openCodeEditor={openCodeEditor}
                     prompt={selectedNode?.data?.prompt}
@@ -365,6 +431,7 @@ export default function Dashboard() {
                 open={isPromptModalOpen}
                 onClose={() => setPromptModalOpen(false)}
                 selectedNode={selectedNode}
+                availableVariables={nodeLabelsMap[selectedNode?.id]?.inputs || []}
                 onSave={(newPrompt) => {
                     // Update node with new prompt
                     if (!selectedNode) return;
@@ -399,6 +466,23 @@ export default function Dashboard() {
                 onClose={closeCodeEditor}
                 selectedNode={selectedNode}
                 onSave={handleCodeSave}
+            />
+
+            <TemplateEditor
+                open={isTemplateEditorOpen}
+                onClose={closeTemplateEditor}
+                selectedNode={selectedNode}
+                availableVariables={nodeLabelsMap[selectedNode?.id]?.inputs || []}
+                onSave={(newTemplate) => {
+                    // Update node with new template
+                    if (!selectedNode) return;
+                    
+                    const updatedNode = {
+                        ...selectedNode,
+                        data: { ...selectedNode.data, template: newTemplate }
+                    };
+                    updateNode(updatedNode);
+                }}
             />
         </Sheet>
     );
