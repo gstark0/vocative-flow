@@ -3,7 +3,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework.exceptions import PermissionDenied, NotFound
 from rest_framework import status
 from django.shortcuts import get_object_or_404
-from api.models import Project
+from api.models import Project, ProjectClient
 
 class CreatorTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
@@ -35,6 +35,25 @@ class ClientTokenObtainPairSerializer(TokenObtainPairSerializer):
                 detail="Only clients can access this application",
                 code=status.HTTP_403_FORBIDDEN
             )
+        
+        # Get project from context or request
+        request = self.context.get('request')
+        url_name = request.data.get('system_url_name') if request else None
+
+        if not url_name:
+            raise PermissionDenied(
+                detail="URL name is required",
+                code=status.HTTP_400_BAD_REQUEST
+            )
+
+        requested_project = get_object_or_404(Project, url_name=url_name)
+        
+        # Check if this client has access to this specific project
+        if not ProjectClient.objects.filter(client=self.user, project=requested_project).exists():
+            raise PermissionDenied(
+                detail="You don't have access to this project",
+                code=status.HTTP_403_FORBIDDEN
+            )
             
         # Add additional user info to response
         data['email'] = self.user.email
@@ -53,7 +72,6 @@ class SystemClientTokenSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         # Get system URL name from context
         system_url_name = self.context['system_url_name']
-        print(system_url_name, flush=True)
         
         # Check if system exists
         try:
@@ -68,10 +86,9 @@ class SystemClientTokenSerializer(TokenObtainPairSerializer):
         if not self.user.is_client:
             raise PermissionDenied("Only clients can access this system")
             
-        # Check if this client has access to this specific system (optional)
-        # This depends on your data model - if clients are linked to projects
-        # if not project.clients.filter(id=self.user.id).exists():
-        #     raise PermissionDenied("You don't have access to this system")
+        # Check if this client has access to this specific project
+        if not ProjectClient.objects.filter(client=self.user, project=project).exists():
+            raise PermissionDenied("You don't have access to this project")
             
         # Add additional data
         data['email'] = self.user.email

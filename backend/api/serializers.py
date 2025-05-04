@@ -1,7 +1,8 @@
 from rest_framework import serializers
-from api.models import Project, Node, Edge, AINode, CodeNode, TemplateNode, Example, SupportedTranscriptLanguage, ProjectSupportedTranscriptLanguage
+from api.models import Project, Node, Edge, AINode, CodeNode, TemplateNode, Example, SupportedTranscriptLanguage, ProjectSupportedTranscriptLanguage, User, ClientJob, Transcript
 from django.db import transaction
 from django.db.utils import IntegrityError
+from django.utils import timezone
 
 class ExampleSerializer(serializers.ModelSerializer):
     class Meta:
@@ -240,3 +241,66 @@ class ProjectSupportedTranscriptLanguageSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProjectSupportedTranscriptLanguage
         fields = ['id', 'language', 'language_id']
+
+class TranscriptSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(required=False)
+
+    class Meta:
+        model = Transcript
+        fields = ['id', 'created_at', 'updated_at', 'content']
+        read_only_fields = ['created_at', 'updated_at']
+
+class ClientJobDetailedSerializer(serializers.ModelSerializer):
+    transcripts = TranscriptSerializer(many=True, required=False)
+    
+    class Meta:
+        model = ClientJob
+        fields = ['id', 'updated_at', 'created_at', 'name', 'output_markdown', 'transcripts']
+        read_only_fields = ['updated_at', 'created_at']
+
+    def update(self, instance, validated_data):
+        # Extract transcripts data
+        transcripts_data = validated_data.pop('transcripts', None)
+        
+        # Update the job instance
+        instance = super().update(instance, validated_data)
+        
+        # Update transcripts
+        if transcripts_data is None:
+            return instance
+        
+        incoming_transcript_ids = []
+        print('TRANSCRIPTS', transcripts_data, flush=True)
+        for transcript_data in transcripts_data:
+            transcript_id = transcript_data.get('id', None)
+            if transcript_id:
+                # Update existing transcript
+                transcript = Transcript.objects.get(id=transcript_id)
+                transcript.content = transcript_data.get('content', transcript.content)
+                transcript.updated_at = timezone.now()
+                transcript.save()
+            else:
+                # Create new transcript
+                transcript = Transcript.objects.create(job=instance, content=transcript_data['content'])
+            incoming_transcript_ids.append(transcript.id)
+        
+        # Delete transcripts that are in the database but not in the request
+        existing_transcripts = Transcript.objects.filter(job=instance)
+        existing_transcript_ids = [transcript.id for transcript in existing_transcripts]
+        print('EXISTING', existing_transcript_ids, flush=True)
+        print('INCOMING', incoming_transcript_ids, flush=True)
+        ids_to_remove = set(existing_transcript_ids) - set(incoming_transcript_ids)
+        for transcript_id in ids_to_remove:
+            Transcript.objects.filter(id=transcript_id).delete()
+        
+        instance.save()
+        return instance
+    
+class ClientJobSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ClientJob
+        fields = ['id', 'user', 'updated_at', 'created_at', 'name', 'output_markdown']
+        read_only_fields = ['updated_at', 'created_at']
+        extra_kwargs = {
+            'user': {'write_only': True}
+        }

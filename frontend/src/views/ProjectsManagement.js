@@ -166,6 +166,9 @@ export default function ProjectsManagement() {
   // URL name validation state
   const [urlNameError, setUrlNameError] = useState('');
   const [isUrlNameAvailable, setIsUrlNameAvailable] = useState(null);
+
+  // Get base client URL
+  const baseClientUrl = window.location.origin + '/client/';
   
   // Check URL name availability - simplified
   const checkUrlNameAvailability = async (urlName) => {
@@ -505,7 +508,7 @@ export default function ProjectsManagement() {
                       }}
                     >
                       <LinkIcon fontSize="inherit" />
-                      flow.vocative.ai/client/{project.url_name}/
+                      {baseClientUrl + project.url_name + '/'}
                     </Typography>
                   )}
                   
@@ -608,7 +611,7 @@ export default function ProjectsManagement() {
               <FormControl required error={!!urlNameError}>
                 <FormLabel>
                   URL Name 
-                  <Tooltip title="This will be used in the client URL: flow.vocative.ai/client/your-url-name/">
+                  <Tooltip title={"This will be used in the client URL: " + baseClientUrl + "your-url-name/"}>
                     <InfoOutlinedIcon sx={{ ml: 0.5, fontSize: '0.9rem', verticalAlign: 'middle' }} />
                   </Tooltip>
                 </FormLabel>
@@ -621,7 +624,7 @@ export default function ProjectsManagement() {
                 {urlNameError && <FormHelperText>{urlNameError}</FormHelperText>}
                 {!urlNameError && newProjectData.url_name && (
                   <FormHelperText>
-                    Client URL: flow.vocative.ai/client/{newProjectData.url_name}/
+                    Client URL: {baseClientUrl + newProjectData.url_name}/
                   </FormHelperText>
                 )}
               </FormControl>

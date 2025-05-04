@@ -6,7 +6,7 @@ from rest_framework.routers import DefaultRouter
 from .views.auth import CreatorTokenObtainPairView, ClientTokenObtainPairView, SystemClientTokenView
 from .views.flow import FlowViewSet
 from .views.projects import ProjectViewSet, GeneralSettingsView
-from .views.client import ClientSystemView  # This will be a new view
+from .views.client import ClientSystemView, JobViewSet, TranscriptView
 
 # Create a router for project endpoints
 router = DefaultRouter()
@@ -25,6 +25,12 @@ urlpatterns = [
     path('client/<str:system_url_name>/token/refresh/', TokenRefreshView.as_view(), name='system_token_refresh'),
     path('client/<str:system_url_name>/data/', ClientSystemView.as_view(), name='client_system_data'),
     path('client/<str:system_url_name>/login-data/',  ClientSystemView.as_view(), name='client_system_login_data'),
+
+    # Client jobs
+    path('jobs/<int:job_id>/', JobViewSet.as_view(), name='client_job'),
+    path('jobs/', JobViewSet.as_view(), name='client_jobs'),
+    # Transcript endpoints
+    #path('transcripts/<int:transcript_id>/', TranscriptView.as_view(), name='client_transcript'),
 
     # Include project routes from router
     path('', include(router.urls)),
